@@ -37,6 +37,7 @@ uvicorn hug_guardian.api:app --host 0.0.0.0 --port 8000
 | `GET /users` | Demo users |
 | `GET /harness`, `GET /harness/versions` | Active harness, all versions |
 | `GET /evals` | Score per version |
+| `GET /dashboard` | Score chart page (open in a browser; add `?demo` for sample data) |
 | `GET /diff?from=1&to=4` | What the coach changed |
 
 ## Layout

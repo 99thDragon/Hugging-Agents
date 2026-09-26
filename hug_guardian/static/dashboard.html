@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hug Guardian Scores</title>
+<style>
+:root {
+  color-scheme: light;
+  --surface-0: #f5f4f1; --surface-1: #fcfcfb; --grid: #e4e3df;
+  --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #7a7974;
+  --series-1: #2a78d6; --series-2: #eb6834; --critical: #d03b3a; --good: #1b8a4c;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --surface-0: #111110; --surface-1: #1a1a19; --grid: #2e2e2c;
+    --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #8f8e86;
+    --series-1: #3987e5; --series-2: #d95926; --critical: #e66767; --good: #3fb574;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-0: #111110; --surface-1: #1a1a19; --grid: #2e2e2c;
+  --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #8f8e86;
+  --series-1: #3987e5; --series-2: #d95926; --critical: #e66767; --good: #3fb574;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--surface-0); color: var(--text-primary);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 960px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 24px; margin: 0 0 4px; }
+h2 { font-size: 16px; margin: 0 0 2px; }
+.sub { color: var(--text-secondary); margin: 0 0 24px; }
+.note { color: var(--text-muted); font-size: 13px; margin: 0 0 12px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.tile, .card { background: var(--surface-1); border: 1px solid var(--grid); border-radius: 10px; padding: 16px; }
+.tile .label { color: var(--text-secondary); font-size: 13px; }
+.tile .value { font-size: 32px; font-weight: 600; line-height: 1.2; }
+.tile .delta { font-size: 13px; color: var(--text-secondary); }
+.card { margin-bottom: 16px; position: relative; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); margin: 4px 0 8px; }
+.key { display: inline-block; width: 14px; height: 2px; vertical-align: middle; margin-right: 6px; border-radius: 1px; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; vertical-align: middle; margin-right: 6px; border: 2px solid var(--text-muted); }
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+svg text { fill: var(--text-muted); font-size: 12px; }
+.tip { position: absolute; pointer-events: none; background: var(--surface-1); border: 1px solid var(--grid);
+  border-radius: 8px; padding: 8px 10px; font-size: 13px; box-shadow: 0 4px 16px rgba(0,0,0,.12); display: none; white-space: nowrap; }
+.tip b { display: block; margin-bottom: 2px; }
+.tip span { color: var(--text-secondary); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--grid); }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--text-secondary); font-weight: 500; }
+.wrap { overflow-x: auto; }
+.status { font-size: 13px; }
+.ok::before { content: "\2713  "; color: var(--good); }
+.no::before { content: "\2715  "; color: var(--text-muted); }
+.empty { color: var(--text-secondary); padding: 24px 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Hug Guardian scores</h1>
+  <p class="sub">Each version is a new harness written by the coach. It is kept only if it beats the current best.</p>
+  <div id="root"><p class="empty">Loading /evals...</p></div>
+</main>
+<script>
+const DEMO = [
+  {harness_version: 1, score: .75, holdout_score: .75, recall: .72, false_block_rate: 0, dangerous_misses: 3, accepted: true},
+  {harness_version: 2, score: .88, holdout_score: .75, recall: .86, false_block_rate: 0, dangerous_misses: 1, accepted: true},
+  {harness_version: 3, score: .84, holdout_score: .83, recall: .80, false_block_rate: .1, dangerous_misses: 1, accepted: false},
+  {harness_version: 4, score: 1, holdout_score: .83, recall: 1, false_block_rate: 0, dangerous_misses: 0, accepted: true},
+];
+const pct = v => Math.round(v * 100) + "%";
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+async function load() {
+  if (new URLSearchParams(location.search).has("demo")) return DEMO;
+  const r = await fetch("/evals");
+  if (!r.ok) throw new Error("GET /evals returned " + r.status);
+  return r.json();
+}
+
+function render(runs) {
+  const root = document.getElementById("root");
+  if (!runs.length) { root.innerHTML = '<p class="empty">No eval runs yet. Run <code>python scripts/loop.py</code> first.</p>'; return; }
+  runs.sort((a, b) => a.harness_version - b.harness_version);
+  const first = runs[0];
+  const accepted = runs.filter(r => r.accepted);
+  const best = accepted[accepted.length - 1] || first;
+  root.innerHTML = `
+    <div class="tiles">
+      <div class="tile"><div class="label">Best version</div><div class="value">v${best.harness_version}</div>
+        <div class="delta">${runs.length} versions tried, ${accepted.length} kept</div></div>
+      <div class="tile"><div class="label">Holdout score</div><div class="value">${pct(best.holdout_score)}</div>
+        <div class="delta">from ${pct(first.holdout_score)} at v${first.harness_version}, on unseen cases</div></div>
+      <div class="tile"><div class="label">Dangerous misses</div><div class="value">${best.dangerous_misses}</div>
+        <div class="delta">from ${first.dangerous_misses} at v${first.harness_version}</div></div>
+    </div>
+    <div class="card"><h2>Score by version</h2>
+      <p class="note">Train cases teach the coach. Holdout cases are never shown to it.</p>
+      <div class="legend">
+        <span><i class="key" style="background:var(--series-1)"></i>Train score</span>
+        <span><i class="key" style="background:var(--series-2)"></i>Holdout score</span>
+        <span><i class="dot"></i>Hollow = rejected</span>
+      </div>
+      <div id="lines"></div><div class="tip" id="tip1"></div></div>
+    <div class="card"><h2>Dangerous misses by version</h2>
+      <p class="note">Unsafe bookings the agent let through. The goal is zero.</p>
+      <div id="bars"></div><div class="tip" id="tip2"></div></div>
+    <div class="card"><h2>All runs</h2><div class="wrap"><table>
+      <thead><tr><th>Version</th><th>Train</th><th>Holdout</th><th>Recall</th><th>False blocks</th><th>Dangerous misses</th><th>Result</th></tr></thead>
+      <tbody>${runs.map(r => `<tr><td>v${r.harness_version}</td><td>${pct(r.score)}</td><td>${pct(r.holdout_score)}</td>
+        <td>${pct(r.recall)}</td><td>${pct(r.false_block_rate)}</td><td>${r.dangerous_misses}</td>
+        <td class="status ${r.accepted ? "ok" : "no"}">${r.accepted ? "Kept" : "Rejected"}</td></tr>`).join("")}</tbody>
+    </table></div></div>`;
+  lineChart(runs);
+  barChart(runs);
+}
+
+function tooltip(tip, card, html, x, y) {
+  tip.innerHTML = html;
+  tip.style.display = "block";
+  const cw = card.clientWidth, tw = tip.offsetWidth;
+  tip.style.left = Math.min(Math.max(x - tw / 2, 8), cw - tw - 8) + "px";
+  tip.style.top = (y - tip.offsetHeight - 12) + "px";
+}
+
+function frame(host, H) {
+  const W = Math.max(host.clientWidth, 280);
+  const svg = el("svg", {viewBox: `0 0 ${W} ${H}`, role: "img"}, host);
+  return {svg, W};
+}
+
+function lineChart(runs) {
+  const host = document.getElementById("lines"), tip = document.getElementById("tip1");
+  const H = 260, m = {t: 12, r: 92, b: 28, l: 40};
+  const {svg, W} = frame(host, H);
+  svg.setAttribute("aria-label", "Train and holdout score by harness version");
+  const n = runs.length, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const x = i => m.l + (n === 1 ? iw / 2 : i * iw / (n - 1));
+  const y = v => m.t + ih * (1 - v);
+  for (const t of [0, .25, .5, .75, 1]) {
+    el("line", {x1: m.l, x2: W - m.r, y1: y(t), y2: y(t), stroke: "var(--grid)", "stroke-width": 1}, svg);
+    el("text", {x: m.l - 8, y: y(t) + 4, "text-anchor": "end"}, svg).textContent = pct(t);
+  }
+  runs.forEach((r, i) => { el("text", {x: x(i), y: H - 8, "text-anchor": "middle"}, svg).textContent = "v" + r.harness_version; });
+  const cross = el("line", {y1: m.t, y2: m.t + ih, stroke: "var(--text-muted)", "stroke-width": 1, visibility: "hidden"}, svg);
+  const series = [["score", "var(--series-1)", "Train"], ["holdout_score", "var(--series-2)", "Holdout"]];
+  for (const [key, color] of series) {
+    el("polyline", {points: runs.map((r, i) => `${x(i)},${y(r[key])}`).join(" "), fill: "none",
+      stroke: color, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round"}, svg);
+  }
+  for (const [key, color] of series) {
+    runs.forEach((r, i) => el("circle", {cx: x(i), cy: y(r[key]), r: 5, fill: r.accepted ? color : "var(--surface-1)",
+      stroke: r.accepted ? "var(--surface-1)" : color, "stroke-width": 2}, svg));
+  }
+  // End labels: value at the line end, nudged only when the two collide.
+  const last = runs[n - 1], ya = y(last.score), yb = y(last.holdout_score);
+  const gap = Math.abs(ya - yb) < 16 ? (ya <= yb ? [-8, 8] : [8, -8]) : [0, 0];
+  el("text", {x: x(n - 1) + 10, y: ya + 4 + gap[0]}, svg).textContent = "Train " + pct(last.score);
+  el("text", {x: x(n - 1) + 10, y: yb + 4 + gap[1]}, svg).textContent = "Holdout " + pct(last.holdout_score);
+  const hit = el("rect", {x: m.l - 10, y: m.t, width: iw + 20, height: ih, fill: "transparent"}, svg);
+  const card = host.parentElement;
+  hit.addEventListener("pointermove", e => {
+    const pt = svg.getBoundingClientRect(), sx = (e.clientX - pt.left) * W / pt.width;
+    const i = Math.max(0, Math.min(n - 1, Math.round(n === 1 ? 0 : (sx - m.l) / iw * (n - 1))));
+    const r = runs[i];
+    cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.setAttribute("visibility", "visible");
+    const px = x(i) * pt.width / W + host.offsetLeft, py = y(Math.max(r.score, r.holdout_score)) * pt.width / W + host.offsetTop;
+    tooltip(tip, card, `<b>v${r.harness_version} · ${r.accepted ? "kept" : "rejected"}</b>
+      <span>Train</span> ${pct(r.score)}<br><span>Holdout</span> ${pct(r.holdout_score)}`, px, py);
+  });
+  hit.addEventListener("pointerleave", () => { tip.style.display = "none"; cross.setAttribute("visibility", "hidden"); });
+}
+
+function barChart(runs) {
+  const host = document.getElementById("bars"), tip = document.getElementById("tip2");
+  const H = 180, m = {t: 20, r: 16, b: 28, l: 40};
+  const {svg, W} = frame(host, H);
+  svg.setAttribute("aria-label", "Dangerous misses by harness version");
+  const n = runs.length, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const max = Math.max(1, ...runs.map(r => r.dangerous_misses));
+  const step = Math.max(1, Math.ceil(max / 3));
+  const top = step * Math.ceil(max / step);
+  const y = v => m.t + ih * (1 - v / top);
+  for (let t = 0; t <= top; t += step) {
+    el("line", {x1: m.l, x2: W - m.r, y1: y(t), y2: y(t), stroke: "var(--grid)", "stroke-width": 1}, svg);
+    el("text", {x: m.l - 8, y: y(t) + 4, "text-anchor": "end"}, svg).textContent = t;
+  }
+  const band = iw / n, bw = Math.min(24, band * .6), card = host.parentElement;
+  runs.forEach((r, i) => {
+    const cx = m.l + band * (i + .5), h = ih * r.dangerous_misses / top, x0 = cx - bw / 2, y0 = m.t + ih - h, rad = Math.min(4, h);
+    if (h > 0) el("path", {d: `M${x0},${m.t + ih}V${y0 + rad}Q${x0},${y0} ${x0 + rad},${y0}H${x0 + bw - rad}Q${x0 + bw},${y0} ${x0 + bw},${y0 + rad}V${m.t + ih}Z`,
+      fill: "var(--critical)"}, svg);
+    el("text", {x: cx, y: y0 - 6, "text-anchor": "middle", style: "fill:var(--text-secondary)"}, svg).textContent = r.dangerous_misses;
+    el("text", {x: cx, y: H - 8, "text-anchor": "middle"}, svg).textContent = "v" + r.harness_version;
+    const hit = el("rect", {x: cx - band / 2, y: m.t, width: band, height: ih, fill: "transparent"}, svg);
+    hit.addEventListener("pointermove", () => {
+      const pt = svg.getBoundingClientRect(), s = pt.width / W;
+      tooltip(tip, card, `<b>v${r.harness_version} · ${r.accepted ? "kept" : "rejected"}</b>
+        <span>Dangerous misses</span> ${r.dangerous_misses}`, cx * s + host.offsetLeft, y0 * s + host.offsetTop);
+    });
+    hit.addEventListener("pointerleave", () => { tip.style.display = "none"; });
+  });
+}
+
+let data = [];
+load().then(d => { data = d; render(data); }).catch(e => {
+  document.getElementById("root").innerHTML = `<p class="empty">Could not load scores: ${esc(e.message)}</p>`;
+});
+let rt;
+addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => data.length && render(data), 150); });
+</script>
+</body>
+</html>

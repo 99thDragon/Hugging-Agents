@@ -1,10 +1,12 @@
 """HTTP API for the app. Run: uvicorn hug_guardian.api:app --port 8000 --host 0.0.0.0"""
 
 import uuid
+from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from .agent import screen
@@ -64,6 +66,11 @@ def versions():
 @app.get("/evals")
 def evals():
     return [{k: v for k, v in e.items() if k not in ("failures", "holdout_failures")} for e in store.list_evals()]
+
+
+@app.get("/dashboard", include_in_schema=False)
+def dashboard():
+    return FileResponse(Path(__file__).parent / "static" / "dashboard.html")
 
 
 @app.get("/diff")

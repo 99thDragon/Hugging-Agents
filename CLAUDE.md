@@ -58,15 +58,15 @@ Version 1 misses obvious red flags (~60%). Run the loop. Version N catches them 
 
 - [x] Test set: 30 to 50 fake booking requests with labels
 - [x] Strands agent + tools
-- [x] MongoDB harness store, versions, scores (local JSON until the Atlas URI is in .env)
+- [x] MongoDB harness store, versions, scores (Atlas; local JSON fallback when MONGODB_URI is unset)
 - [x] Improvement loop
 - [ ] Wire the app's booking flow to the agent
-- [ ] Chart or slide showing the score rising across versions
+- [x] Chart showing the score rising across versions (`/dashboard` on the API; `/dashboard?demo` shows sample data)
 
 ## Setup status
 
 - Kiro bonus credits: claimed
-- MongoDB Atlas: account created, teammates added (project ID `6ab7f5097d3d0c27d947e500`). Still need: cluster, database user, IP access, connection string in `.env`
+- MongoDB Atlas: account created, teammates added (project ID `6ab7f5097d3d0c27d947e500`). Cluster0 is live; the loop writes to it when MONGODB_URI is in `.env`. Cloud Claude sessions cannot reach port 27017, so run Mongo steps on a laptop
 - GitHub repo: https://github.com/99thDragon/Hugging-Agents (public)
 - One teammate wants to use **LingCode** as their editor. That's fine for front-end work, but data must go in MongoDB, not LingCode's built-in Postgres. LingCode has no Python support.
 
