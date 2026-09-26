@@ -1,0 +1,94 @@
+# Hug Guardian: Hackathon Project Context
+
+Handoff notes for Claude Code. Put this file in the root of the team repo.
+
+## The event
+
+**MongoDB Harness Engineering & Model Wrangling Hackathon** (Sept 26, 2026)
+
+Theme: build harnesses that adapt, remember, and run reliably over the long haul. The project must fit at least one problem statement:
+
+- **Statement 1: Recursive Harnessing (our pick).** A self-improving agent harness that evolves its own architecture: rules, context policies, guardrails, tool access. The agent adapts its environment to a user, task, or use case.
+- Statement 2: Long Horizon Engineering. Coherent memory across huge sessions, optimizing toward long-term goals from hard metrics. (Skipped: too hard to demo in a short pitch.)
+
+Judges include Brooke, Senior Developer Advocate at AWS. Her talk pushed Kiro, Strands Agents, Harness Optimizer, and context engineering. Her core message: the harness (prompt, tools, context management) matters as much as the model. MongoDB is the host sponsor, so data lives in MongoDB.
+
+## The idea
+
+Build on the team's existing **Sell Your Hugs** app (https://pumptool.github.io/Hug/, repo https://github.com/pumptool/Hug). It's a PWA for booking platonic hugs: vanilla JS, 10 screens, localStorage, service worker. It has no AI.
+
+We add **Hug Guardian**, an agent that screens booking requests and **rewrites its own rulebook** to get better.
+
+### Agent
+
+- Built with **Strands Agents**
+- Input: a booking request (who, where, when, message, user history)
+- Output: `approve` / `ask_followup` / `reject`, plus a reason
+- Tools (draft): `check_location`, `check_user_history`, `flag_request`
+
+### Harness stored in MongoDB (not hardcoded)
+
+- System prompt
+- Safety and consent rules
+- Allowed tools
+- Context policy (how much history the agent sees)
+
+### Self-improvement loop
+
+1. Run the agent on a test set of booking requests (safe and sketchy, with correct labels)
+2. Score it (caught bad requests, didn't block good ones)
+3. A "coach" agent reads the failures and rewrites the rulebook
+4. Save the new harness version and its score to MongoDB
+5. Repeat
+
+If we use Python, use **Harness Optimizer** (`pip install strands-harness-optimizer`) for steps 2 and 3.
+
+### MongoDB collections (draft)
+
+- `harness_versions`: `{ version, system_prompt, rules[], tools[], context_policy, parent_version, created_at }`
+- `eval_runs`: `{ harness_version, score, precision, recall, failures[], created_at }`
+- `bookings`: `{ request, decision, reason, harness_version, created_at }`
+- `test_cases`: `{ request, expected_decision, notes }`
+
+### Demo
+
+Version 1 misses obvious red flags (~60%). Run the loop. Version N catches them (~90%+). Pull the rule diffs from MongoDB to show what the agent changed about itself. The existing app is the front end: "Book" sends the request to the agent, and a small screen shows the decision and reason.
+
+### Build list
+
+- [ ] Test set: 30 to 50 fake booking requests with labels
+- [ ] Strands agent + tools
+- [ ] MongoDB harness store, versions, scores
+- [ ] Improvement loop
+- [ ] Wire the app's booking flow to the agent
+- [ ] Chart or slide showing the score rising across versions
+
+## Setup status
+
+- Kiro bonus credits: claimed
+- MongoDB Atlas: account created, teammates added (project ID `6ab7f5097d3d0c27d947e500`). Still need: cluster, database user, IP access, connection string in `.env`
+- GitHub repo: https://github.com/99thDragon/Hugging-Agents (public)
+- One teammate wants to use **LingCode** as their editor. That's fine for front-end work, but data must go in MongoDB, not LingCode's built-in Postgres. LingCode has no Python support.
+
+## Open decisions
+
+1. **Language:** Python (gets Harness Optimizer) or TypeScript (one language with the app, loop written by hand)
+2. **Model:** AWS Bedrock (Strands default, good with AWS judges), Anthropic key, or OpenAI key
+3. **Repo:** name, public (judges usually need to see it), teammate usernames
+
+## Resources
+
+- Strands Agents: https://strandsagents.com
+- Strands quickstart + Strands MCP server setup: https://strandsagents.com/docs/user-guide/sdk/quickstart/typescript/
+- Harness Optimizer: https://github.com/strands-labs/harness-optimizer
+- Harness Optimizer blog: https://strandsagents.com/blog/introducing-harness-optimizer/
+- ARC-AGI-3 harness blog (reference pattern): https://strandsagents.com/blog/our-production-sdk-hit-99-95-on-arc-agi-3/
+- Context engineering lesson: https://strandsagents.com/docs/learning/context-engineering-and-conversation-management/ (use `context_manager="auto"`)
+- Agent Toolkit for AWS: https://aws.amazon.com/products/developer-tools/agent-toolkit-for-aws/
+- Kiro: https://kiro.dev
+
+## Working style
+
+- Keep answers short and direct. No em dashes.
+- The agent and the loop are what get judged. Keep app changes minimal.
+- Never commit secrets. Keep keys and the MongoDB URI in `.env`, and add it to `.gitignore`.
