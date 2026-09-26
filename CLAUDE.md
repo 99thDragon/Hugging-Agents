@@ -66,7 +66,9 @@ Version 1 misses obvious red flags (~60%). Run the loop. Version N catches them 
 ## Setup status
 
 - Kiro bonus credits: claimed
-- MongoDB Atlas: account created, teammates added (project ID `6ab7f5097d3d0c27d947e500`). Cluster0 is live; the loop writes to it when MONGODB_URI is in `.env`. Cloud Claude sessions cannot reach port 27017, so run Mongo steps on a laptop
+- MongoDB Atlas: project `gameoftwo@proton.me's` in org Harness Engineering, cluster `cluster0.ir56fb` (moved from `cluster0.vhwxfdo` with `scripts/copy_db.py`). Network Access allows 0.0.0.0/0. Cloud Claude sessions cannot reach port 27017, so run Mongo steps on a laptop
+- API deployed on Vercel: https://hugging-agents.vercel.app (auto-deploys on push to main; OPENROUTER_API_KEY and MONGODB_URI set in Vercel Production). `/dashboard` for scores, `/docs` to try endpoints
+- Loop run 1 on Atlas: v1 75/75 (3 dangerous misses), v2 78/67, v3 91/92 (0), v4 97/83 (0). v3 is set active (best holdout)
 - GitHub repo: https://github.com/99thDragon/Hugging-Agents (public)
 - One teammate wants to use **LingCode** as their editor. That's fine for front-end work, but data must go in MongoDB, not LingCode's built-in Postgres. LingCode has no Python support.
 
