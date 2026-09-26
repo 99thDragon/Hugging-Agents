@@ -56,10 +56,10 @@ Version 1 misses obvious red flags (~60%). Run the loop. Version N catches them 
 
 ### Build list
 
-- [ ] Test set: 30 to 50 fake booking requests with labels
-- [ ] Strands agent + tools
-- [ ] MongoDB harness store, versions, scores
-- [ ] Improvement loop
+- [x] Test set: 30 to 50 fake booking requests with labels
+- [x] Strands agent + tools
+- [x] MongoDB harness store, versions, scores (local JSON until the Atlas URI is in .env)
+- [x] Improvement loop
 - [ ] Wire the app's booking flow to the agent
 - [ ] Chart or slide showing the score rising across versions
 
@@ -70,11 +70,12 @@ Version 1 misses obvious red flags (~60%). Run the loop. Version N catches them 
 - GitHub repo: https://github.com/99thDragon/Hugging-Agents (public)
 - One teammate wants to use **LingCode** as their editor. That's fine for front-end work, but data must go in MongoDB, not LingCode's built-in Postgres. LingCode has no Python support.
 
-## Open decisions
+## Decisions
 
-1. **Language:** Python (gets Harness Optimizer) or TypeScript (one language with the app, loop written by hand)
-2. **Model:** AWS Bedrock (Strands default, good with AWS judges), Anthropic key, or OpenAI key
-3. **Repo:** name, public (judges usually need to see it), teammate usernames
+1. **Language:** Python (Harness Optimizer for Formula / Rollout / Reward / FormulaOptimizer; custom coach since the built-in one needs Bedrock + a Unix shell)
+2. **Model:** OpenRouter ($10 credit, key expires 2026-10-03). Guardian = `anthropic/claude-haiku-4.5`, coach = `anthropic/claude-sonnet-5`. Override with GUARDIAN_MODEL / COACH_MODEL in `.env`
+3. **Repo:** https://github.com/99thDragon/Hugging-Agents (public). Team: 99thDragon + Sal (`vim719`)
+4. **Work split + API contract:** see the PRD (Claude Docs, "Hugging Agents PRD")
 
 ## Resources
 

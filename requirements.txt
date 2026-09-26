@@ -1,0 +1,8 @@
+fastapi==0.141.1
+openai==2.54.0
+pydantic==2.13.5
+pymongo==4.18.2
+python-dotenv==1.2.3
+strands-agents==1.57.1
+strands-harness-optimizer==0.0.1
+uvicorn==0.54.0
