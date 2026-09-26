@@ -63,6 +63,14 @@ def versions():
     return store.list_harnesses()
 
 
+@app.post("/harness/active")
+def set_active(version: int):
+    """Make an existing version the one /screen uses by default."""
+    _harness(version)
+    store.set_active(version)
+    return {"active_version": version}
+
+
 @app.get("/evals")
 def evals():
     return [{k: v for k, v in e.items() if k not in ("failures", "holdout_failures")} for e in store.list_evals()]

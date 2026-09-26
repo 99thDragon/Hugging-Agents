@@ -36,6 +36,7 @@ uvicorn hug_guardian.api:app --host 0.0.0.0 --port 8000
 | `POST /screen` | Screen one booking. `?version=1` screens with an older harness (for the before/after demo) |
 | `GET /users` | Demo users |
 | `GET /harness`, `GET /harness/versions` | Active harness, all versions |
+| `POST /harness/active?version=3` | Make an existing version the active one |
 | `GET /evals` | Score per version |
 | `GET /dashboard` | Score chart page (open in a browser; add `?demo` for sample data) |
 | `GET /diff?from=1&to=4` | What the coach changed |

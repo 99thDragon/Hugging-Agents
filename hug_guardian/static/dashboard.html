@@ -82,8 +82,11 @@ function el(tag, attrs, parent) {
   return e;
 }
 
+let liveVersion = null;
 async function load() {
   if (new URLSearchParams(location.search).has("demo")) return DEMO;
+  // The version /screen uses. Falls back to the newest kept version if this fails.
+  try { const h = await fetch("/harness"); if (h.ok) liveVersion = (await h.json()).version; } catch (e) {}
   const r = await fetch("/evals");
   if (!r.ok) throw new Error("GET /evals returned " + r.status);
   return r.json();
@@ -95,10 +98,10 @@ function render(runs) {
   runs.sort((a, b) => a.harness_version - b.harness_version);
   const first = runs[0];
   const accepted = runs.filter(r => r.accepted);
-  const best = accepted[accepted.length - 1] || first;
+  const best = runs.find(r => r.harness_version === liveVersion) || accepted[accepted.length - 1] || first;
   root.innerHTML = `
     <div class="tiles">
-      <div class="tile"><div class="label">Best version</div><div class="value">v${best.harness_version}</div>
+      <div class="tile"><div class="label">Live version</div><div class="value">v${best.harness_version}</div>
         <div class="delta">${runs.length} versions tried, ${accepted.length} kept</div></div>
       <div class="tile"><div class="label">Holdout score</div><div class="value">${pct(best.holdout_score)}</div>
         <div class="delta">from ${pct(first.holdout_score)} at v${first.harness_version}, on unseen cases</div></div>
